@@ -1,12 +1,11 @@
 #include <LiquidCrystal_I2C.h>
 #include <ezButton.h>
-#include <HCSR04.h>
-#define TRIG 7
-#define ECHO 6
+#define SENSE 7
 #define BUZZ 11
 #define BOTAO 12
 #define LED 2
 
+//caracteres customizados para alarme ligado e desligado
 byte customChar0[8] = {
 	0b01010,
 	0b00100,
@@ -29,21 +28,24 @@ byte customChar1[8] = {
 	0b00000
 };
 
+//colocando os valores
+
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-HCSR04 hc (7, 6);
 
-int distancia = 0;
 int modo = 0;
 int bValue = 0;
 int visita = 0;
+int select = 0;
 
 ezButton button(BOTAO);
 
+ezButton laser(SENSE);
+
+//abrir tela inicial do projeto e configurar todos os tipos de input
 void setup() {
   button.setDebounceTime(50);
-  pinMode(TRIG, OUTPUT);
-  pinMode(ECHO, INPUT);
+  pinMode(SENSE, INPUT_PULLUP);
   pinMode(BUZZ, OUTPUT);
   pinMode(BOTAO, INPUT_PULLUP);
   pinMode(LED, OUTPUT);
@@ -62,11 +64,12 @@ void setup() {
 }
 
 void loop() {
-int distancia = hc.dist();
   button.loop();
+  laser.loop();
 
 bValue = button.getState();
 
+//trocar de modo visitas/saidas para modo alarme
 if (button.isPressed() && modo == 0) {
   modo = 1;
   lcd.clear();
@@ -77,6 +80,7 @@ if (button.isPressed() && modo == 0) {
   lcd.setCursor(15, 1);
   lcd.write((byte)1);
   }
+//trocar de modo alarme para modo visitas/saidas
 else if (button.isPressed() && modo == 1) {
   modo = 0;
   lcd.clear();
@@ -85,17 +89,18 @@ else if (button.isPressed() && modo == 1) {
   lcd.setCursor(0, 0);
   lcd.print("V/S:");
   }
-
+//mostrar quantas pessoas entraram e sairam
 if (modo == 0) {
   lcd.setCursor(4, 0);
   lcd.print (visita);
 }
-
-if (distancia < 70 && modo == 0) {
+//aumentar o valor quando alguem passar na frente do sensor
+if (laser.isPressed() && select == 0 && modo == 0) {
   visita++;
-  delay(1500);
+  select = 1;
 }
-else if (distancia < 50 && modo == 1) {
+//ativar alarme no modo alarme
+else if (laser.isPressed() && modo == 1) {
   tone(BUZZ, 12000);
   lcd.setCursor(0, 1);
   lcd.print("Alarme ativo");
@@ -105,12 +110,10 @@ else if (distancia < 50 && modo == 1) {
     lcd.setCursor(15, 1);
   lcd.write((byte)0);
     delay(1000000000000000);
-    
 }
-  lcd.setCursor(10, 0);
-  lcd.print(" ");
-  lcd.setCursor(11, 0);
-  lcd.print(hc.dist());
-
-
+//se alguem ficar na frente o sensor só ira contar uma pessoa até essa pessoa sair
+else if (laser.isReleased() && modo == 0 && select == 1){
+  select = 0;
+  delay(500);
+}
 }
