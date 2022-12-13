@@ -7,9 +7,15 @@ Arduino project for counting people or using it as a alarm
 # Componentes/Components
 
 Arduino Uno
+
 16x2 lcd screen
+
 Breadboard
+
 Buzzer (Piezo)
+
 Button
+
 Led
+
 Laser/IR sensor
